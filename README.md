@@ -62,3 +62,4 @@ git push -u origin main
 - **Port Web**: `443` (WebSocket wss://)
 - **Port ESP32**: `1883` (TCP MQTT)
 - **Device ID Default**: `12345678` (dapat diubah di panel pengaturan dashboard atau URL query `?device=XXXX`)
+
