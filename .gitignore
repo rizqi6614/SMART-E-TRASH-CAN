@@ -1,0 +1,15 @@
+# Dependency / Build Cache
+node_modules/
+.vscode/
+.gemini/
+*.code-workspace
+
+# OS Generated Files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Arduino Build Files
+*.bin
+*.hex
+*.elf

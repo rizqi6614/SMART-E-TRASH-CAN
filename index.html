@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Smart Bin IoT - Monitoring Tempat Sampah Pintar</title>
+
+  <!-- Google Fonts: Plus Jakarta Sans & Orbitron for LED display -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
+    rel="stylesheet">
+
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <!-- MQTT.js CDN -->
+  <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+
+  <!-- Custom Styles -->
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+  <div class="app-container">
+
+    <!-- LEFT SIDEBAR -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="brand-logo">
+          <div class="logo-icon">
+            <i class="fa-solid fa-recycle"></i>
+          </div>
+          <div class="logo-text">
+            <h2>SMART BIN IoT</h2>
+            <span>SYSTEM MONITORING</span>
+          </div>
+        </div>
+      </div>
+
+      <nav class="sidebar-menu">
+        <a href="#dashboard" class="nav-item active" id="nav-dashboard">
+          <i class="fa-solid fa-table-cells-large"></i>
+          <span>Dashboard</span>
+        </a>
+        <a href="#status-tong" class="nav-item" id="nav-status-tong">
+          <i class="fa-solid fa-dumpster"></i>
+          <span>Status 3 Tong</span>
+        </a>
+        <a href="#riwayat-log" class="nav-item" id="nav-riwayat-log">
+          <i class="fa-solid fa-clock-rotate-left"></i>
+          <span>Riwayat Log</span>
+        </a>
+        <a href="#status-esp32" class="nav-item" id="nav-status-esp32">
+          <i class="fa-solid fa-microchip"></i>
+          <span>Status ESP32</span>
+        </a>
+        <a href="#pengaturan" class="nav-item" id="nav-pengaturan">
+          <i class="fa-solid fa-sliders"></i>
+          <span>Pengaturan</span>
+        </a>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="device-location-card">
+          <span class="location-label">LOKASI PERANGKAT</span>
+          <div class="location-value">
+            <i class="fa-solid fa-location-dot"></i>
+            <span>Gedung Utama - Lt.1</span>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- MAIN CONTENT AREA -->
+    <main class="main-content" id="dashboard">
+
+      <!-- TOP NAVIGATION / HEADER -->
+      <header class="top-header">
+        <div class="header-titles">
+          <h1>Monitoring Tempat Sampah Pintar</h1>
+          <p>Real-time telemetry & automatic waste management system</p>
+        </div>
+
+        <div class="header-actions">
+          <div class="status-badge online" id="esp32-status-badge">
+            <span class="status-dot"></span>
+            <span id="esp32-status-text">ESP32 ONLINE</span>
+          </div>
+
+          <div class="live-clock" id="system-clock">00:00:00</div>
+
+          <button class="btn-simulator" id="btn-open-simulator">
+            <i class="fa-solid fa-vial-flask"></i>
+            <span>Test Simulator</span>
+          </button>
+        </div>
+      </header>
+
+      <!-- KPI TOP METRICS CARDS -->
+      <section class="kpi-grid" id="status-esp32">
+        <div class="kpi-card">
+          <div class="kpi-icon wifi-icon">
+            <i class="fa-solid fa-wifi"></i>
+          </div>
+          <div class="kpi-info">
+            <span class="kpi-label">Sinyal Wi-Fi (RSSI)</span>
+            <h3 class="kpi-value" id="val-rssi">-58 dBm</h3>
+          </div>
+        </div>
+
+        <div class="kpi-card">
+          <div class="kpi-icon led-icon">
+            <i class="fa-regular fa-lightbulb"></i>
+          </div>
+          <div class="kpi-info">
+            <span class="kpi-label">LED Indikator System</span>
+            <h3 class="kpi-value text-green" id="val-led-status">HIJAU (Normal)</h3>
+          </div>
+        </div>
+
+        <div class="kpi-card">
+          <div class="kpi-icon audio-icon">
+            <i class="fa-solid fa-volume-high"></i>
+          </div>
+          <div class="kpi-info">
+            <span class="kpi-label">DFPlayer Audio MP3</span>
+            <h3 class="kpi-value" id="val-dfplayer">Standby</h3>
+          </div>
+        </div>
+
+        <div class="kpi-card">
+          <div class="kpi-icon sync-icon">
+            <i class="fa-solid fa-rotate"></i>
+          </div>
+          <div class="kpi-info">
+            <span class="kpi-label">Last Data Sync</span>
+            <h3 class="kpi-value" id="val-last-sync">Just Now</h3>
+          </div>
+        </div>
+      </section>
+
+      <!-- REAL-TIME STATUS 3 TONG SAMPAH -->
+      <section class="section-container" id="status-tong">
+        <div class="section-header">
+          <div class="section-title">
+            <i class="fa-solid fa-layer-group text-accent"></i>
+            <h2>Real-time Status 3 Tong Sampah</h2>
+          </div>
+          <div class="section-tag">
+            <span>Sistem 6 Ultrasonik & 3 Servo Engine</span>
+          </div>
+        </div>
+
+        <div class="bins-grid">
+
+          <!-- TONG 1: ORGANIK -->
+          <div class="bin-card" id="bin-card-1">
+            <div class="bin-card-header">
+              <div class="bin-title-group">
+                <div class="bin-type-icon organic">
+                  <i class="fa-solid fa-leaf"></i>
+                </div>
+                <div>
+                  <h3>Tong 1: ORGANIK</h3>
+                  <p class="bin-subtitle">Sisa Makanan, Daun, Dapur</p>
+                </div>
+              </div>
+              <span class="badge badge-normal" id="badge-tong1">NORMAL</span>
+            </div>
+
+            <div class="bin-visual-body">
+              <div class="bin-fill-container">
+                <div class="bin-fill-level organic-fill" id="fill-tong1" style="height: 35%;">
+                  <div class="wave"></div>
+                </div>
+              </div>
+
+              <div class="bin-capacity-display">
+                <span class="capacity-percent" id="percent-tong1">35%</span>
+                <span class="capacity-label">Kapasitas Terisi</span>
+              </div>
+            </div>
+
+            <div class="bin-sensors-row">
+              <div class="sensor-box">
+                <span class="sensor-title">SENSOR DALAM (ISI)</span>
+                <div class="sensor-value">
+                  <i class="fa-solid fa-ruler-vertical"></i>
+                  <span id="dist-tong1">13 cm</span>
+                </div>
+              </div>
+              <div class="sensor-box">
+                <span class="sensor-title">LUAR (ORANG) & SERVO</span>
+                <div class="sensor-value">
+                  <i class="fa-solid fa-person-walking"></i>
+                  <span id="orang-tong1">18 cm</span>
+                  <span class="servo-pill" id="servo-tong1">Tertutup</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- TONG 2: ANORGANIK -->
+          <div class="bin-card" id="bin-card-2">
+            <div class="bin-card-header">
+              <div class="bin-title-group">
+                <div class="bin-type-icon anorganic">
+                  <i class="fa-solid fa-bottle-water"></i>
+                </div>
+                <div>
+                  <h3>Tong 2: ANORGANIK</h3>
+                  <p class="bin-subtitle">Botol Plastik, Kaleng, Kertas</p>
+                </div>
+              </div>
+              <span class="badge badge-normal" id="badge-tong2">NORMAL</span>
+            </div>
+
+            <div class="bin-visual-body">
+              <div class="bin-fill-container">
+                <div class="bin-fill-level anorganic-fill" id="fill-tong2" style="height: 60%;">
+                  <div class="wave"></div>
+                </div>
+              </div>
+
+              <div class="bin-capacity-display">
+                <span class="capacity-percent color-warning" id="percent-tong2">60%</span>
+                <span class="capacity-label">Kapasitas Terisi</span>
+              </div>
+            </div>
+
+            <div class="bin-sensors-row">
+              <div class="sensor-box">
+                <span class="sensor-title">SENSOR DALAM (ISI)</span>
+                <div class="sensor-value">
+                  <i class="fa-solid fa-ruler-vertical"></i>
+                  <span id="dist-tong2">11 cm</span>
+                </div>
+              </div>
+              <div class="sensor-box">
+                <span class="sensor-title">LUAR (ORANG) & SERVO</span>
+                <div class="sensor-value">
+                  <i class="fa-solid fa-person-walking"></i>
+                  <span id="orang-tong2">22 cm</span>
+                  <span class="servo-pill" id="servo-tong2">Tertutup</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- TONG 3: B3 (BERBAHAYA) -->
+          <div class="bin-card" id="bin-card-3">
+            <div class="bin-card-header">
+              <div class="bin-title-group">
+                <div class="bin-type-icon b3">
+                  <i class="fa-solid fa-triangle-exclamation"></i>
+                </div>
+                <div>
+                  <h3>Tong 3: B3 (BERBAHAYA)</h3>
+                  <p class="bin-subtitle">Baterai, Lampu, Elektronik</p>
+                </div>
+              </div>
+              <span class="badge badge-full" id="badge-tong3">PENUH</span>
+            </div>
+
+            <div class="bin-visual-body">
+              <div class="bin-fill-container">
+                <div class="bin-fill-level b3-fill" id="fill-tong3" style="height: 92%;">
+                  <div class="wave"></div>
+                </div>
+              </div>
+
+              <div class="bin-capacity-display">
+                <span class="capacity-percent color-danger" id="percent-tong3">92%</span>
+                <span class="capacity-label">Kapasitas Terisi</span>
+              </div>
+            </div>
+
+            <div class="bin-sensors-row">
+              <div class="sensor-box">
+                <span class="sensor-title">SENSOR DALAM (ISI)</span>
+                <div class="sensor-value">
+                  <i class="fa-solid fa-ruler-vertical"></i>
+                  <span id="dist-tong3">6 cm</span>
+                </div>
+              </div>
+              <div class="sensor-box">
+                <span class="sensor-title">LUAR (ORANG) & SERVO</span>
+                <div class="sensor-value">
+                  <i class="fa-solid fa-person-walking"></i>
+                  <span id="orang-tong3">8 cm</span>
+                  <span class="servo-pill" id="servo-tong3">Tertutup</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- BOTTOM DASHBOARD ROW: CHART & LED MATRIX / LOGS -->
+      <section class="bottom-grid" id="riwayat-log">
+
+        <!-- LEFT: REALTIME CAPACITY CHART -->
+        <div class="chart-card">
+          <div class="card-header">
+            <div class="card-title">
+              <i class="fa-solid fa-chart-line text-accent"></i>
+              <h3>Tren Kapasitas Sampah (%)</h3>
+            </div>
+            <div class="chart-legend-custom">
+              <span class="legend-item"><span class="dot organic-dot"></span> Organik</span>
+              <span class="legend-item"><span class="dot anorganic-dot"></span> Anorganik</span>
+              <span class="legend-item"><span class="dot b3-dot"></span> B3</span>
+            </div>
+          </div>
+          <div class="chart-wrapper">
+            <canvas id="capacityChart"></canvas>
+          </div>
+        </div>
+
+        <!-- RIGHT: LED MATRIX & ACTIVITY LOGS -->
+        <div class="side-widgets-column">
+
+          <!-- MD_PAROLA LED MATRIX WIDGET -->
+          <div class="widget-card led-matrix-card">
+            <div class="card-header">
+              <div class="card-title">
+                <i class="fa-solid fa-tv text-accent"></i>
+                <h3>LED Matrix MD_Parola</h3>
+              </div>
+            </div>
+
+            <div class="led-matrix-display-container">
+              <div class="led-matrix-bezel">
+                <div class="led-matrix-screen">
+                  <div class="led-text-scroll" id="led-matrix-text">♥ TERIMA KASIH</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- SYSTEM ACTIVITY LOGS -->
+          <div class="widget-card activity-log-card">
+            <div class="card-header">
+              <div class="card-title">
+                <i class="fa-solid fa-list-check text-accent"></i>
+                <h3>Riwayat Aktivitas System</h3>
+              </div>
+            </div>
+
+            <div class="activity-log-list" id="activity-log-container">
+              <div class="log-item danger">
+                <div class="log-content">
+                  <p class="log-text">Tong 3 (B3) Terdeteksi Penuh! Audio Notifikasi Diputar.</p>
+                </div>
+                <span class="log-time">06:38:12</span>
+              </div>
+
+              <div class="log-item warning">
+                <div class="log-content">
+                  <p class="log-text">Tong 2 (Anorganik) Pengguna mendekat (Servo Terbuka)</p>
+                </div>
+                <span class="log-time">06:35:40</span>
+              </div>
+
+              <div class="log-item success">
+                <div class="log-content">
+                  <p class="log-text">Tong 1 (Organik) Sampah dibuang (Servo Menutup)</p>
+                </div>
+                <span class="log-time">06:30:15</span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+      </section>
+
+    </main>
+  </div>
+
+  <!-- INTERACTIVE TEST SIMULATOR MODAL / DRAWER -->
+  <div class="modal-overlay" id="simulator-modal">
+    <div class="modal-content drawer">
+      <div class="modal-header">
+        <div class="modal-title">
+          <i class="fa-solid fa-flask-vial text-accent"></i>
+          <h2>Interactive ESP32 Simulator</h2>
+        </div>
+        <button class="btn-close-modal" id="btn-close-simulator">&times;</button>
+      </div>
+
+      <div class="modal-body">
+        <p class="sim-intro">Simulasikan nilai 6 sensor ultrasonik & 3 servo ESP32 secara real-time:</p>
+
+        <div class="sim-control-group">
+          <h4><i class="fa-solid fa-microchip"></i> Mode Koneksi Hardware</h4>
+          <div class="sim-row">
+            <label>Device ID / Serial Number</label>
+            <input type="text" id="sim-device-id" class="sim-input" value="12345678" style="padding: 5px 8px; border-radius: 6px; background: rgba(0,230,118,0.06); border: 1px solid var(--border-color); color: #fff;">
+          </div>
+          <div class="sim-row">
+            <label>Status ESP32</label>
+            <select id="sim-esp32-status" class="sim-select">
+              <option value="online" selected>ONLINE</option>
+              <option value="offline">OFFLINE</option>
+            </select>
+          </div>
+          <div class="sim-row">
+            <label>Wi-Fi RSSI (dBm): <span id="sim-rssi-val">-58</span></label>
+            <input type="range" id="sim-rssi" min="-90" max="-30" value="-58">
+          </div>
+        </div>
+
+        <div class="sim-control-group">
+          <h4><i class="fa-solid fa-dumpster"></i> Tong 1 (Organik) Sensors</h4>
+          <div class="sim-row">
+            <label>Sensor Dalam (Isi): <span id="sim-dist1-val">13</span> cm</label>
+            <input type="range" id="sim-dist1" min="2" max="30" value="13">
+          </div>
+          <div class="sim-row">
+            <label>Sensor Luar (Orang): <span id="sim-orang1-val">18</span> cm</label>
+            <input type="range" id="sim-orang1" min="2" max="50" value="18">
+          </div>
+          <div class="sim-row">
+            <label>Servo State:</label>
+            <select id="sim-servo1" class="sim-select">
+              <option value="Tertutup" selected>Tertutup (0°)</option>
+              <option value="Terbuka">Terbuka (140°)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="sim-control-group">
+          <h4><i class="fa-solid fa-bottle-water"></i> Tong 2 (Anorganik) Sensors</h4>
+          <div class="sim-row">
+            <label>Sensor Dalam (Isi): <span id="sim-dist2-val">11</span> cm</label>
+            <input type="range" id="sim-dist2" min="2" max="30" value="11">
+          </div>
+          <div class="sim-row">
+            <label>Sensor Luar (Orang): <span id="sim-orang2-val">22</span> cm</label>
+            <input type="range" id="sim-orang2" min="2" max="50" value="22">
+          </div>
+          <div class="sim-row">
+            <label>Servo State:</label>
+            <select id="sim-servo2" class="sim-select">
+              <option value="Tertutup" selected>Tertutup (0°)</option>
+              <option value="Terbuka">Terbuka (140°)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="sim-control-group">
+          <h4><i class="fa-solid fa-triangle-exclamation"></i> Tong 3 (B3) Sensors</h4>
+          <div class="sim-row">
+            <label>Sensor Dalam (Isi): <span id="sim-dist3-val">6</span> cm</label>
+            <input type="range" id="sim-dist3" min="2" max="30" value="6">
+          </div>
+          <div class="sim-row">
+            <label>Sensor Luar (Orang): <span id="sim-orang3-val">8</span> cm</label>
+            <input type="range" id="sim-orang3" min="2" max="50" value="8">
+          </div>
+          <div class="sim-row">
+            <label>Servo State:</label>
+            <select id="sim-servo3" class="sim-select">
+              <option value="Tertutup" selected>Tertutup (0°)</option>
+              <option value="Terbuka">Terbuka (140°)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="sim-control-group">
+          <h4><i class="fa-solid fa-tv"></i> MD_Parola Matrix Text</h4>
+          <div class="sim-row">
+            <label>Teks Tampilan LED:</label>
+            <select id="sim-preset-matrix" class="sim-select">
+              <option value="Ayo Buang Sampah">Ayo Buang Sampah</option>
+              <option value="TERBUKA">TERBUKA</option>
+              <option value="TERIMA KASIH">TERIMA KASIH</option>
+              <option value="MAAF PENUH">MAAF PENUH</option>
+              <option value="custom">Custom Text...</option>
+            </select>
+            <input type="text" id="sim-led-text" class="sim-input" value="Ayo Buang Sampah" style="margin-top:6px;">
+          </div>
+        </div>
+
+        <div class="sim-control-group">
+          <h4><i class="fa-solid fa-volume-high"></i> DFPlayer Audio MP3</h4>
+          <div class="sim-row">
+            <label>Suara Audio MP3:</label>
+            <select id="sim-dfplayer" class="sim-select">
+              <option value="Standby">Standby</option>
+              <option value="Track 1: Terima Kasih">Track 1: Terima Kasih</option>
+              <option value="Track 2: Maaf Penuh">Track 2: Maaf Penuh</option>
+            </select>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn-sim-reset" id="btn-sim-reset">Reset Standard</button>
+        <button class="btn-sim-apply" id="btn-sim-apply">Apply Telemetry</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Application Script -->
+  <script src="app.js"></script>
+</body>
+
+</html>
