@@ -263,6 +263,27 @@ body {
   letter-spacing: 1px;
 }
 
+.btn-install-pwa {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: linear-gradient(135deg, #00e676 0%, #00b0ff 100%);
+  color: #04100b;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 0.82rem;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(0, 230, 118, 0.35);
+  transition: all 0.25s ease;
+}
+
+.btn-install-pwa:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 230, 118, 0.5);
+}
+
 .btn-simulator {
   display: flex;
   align-items: center;
@@ -1081,6 +1102,11 @@ body {
   .live-clock {
     padding: 6px 10px;
     font-size: 0.75rem;
+  }
+
+  .btn-install-pwa {
+    padding: 6px 10px;
+    font-size: 0.72rem;
   }
 
   .btn-simulator {

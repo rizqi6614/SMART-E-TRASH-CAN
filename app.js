@@ -625,5 +625,41 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
+  // Registrasi PWA Service Worker
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('./sw.js')
+        .then(reg => console.log('[PWA] Service Worker aktif:', reg.scope))
+        .catch(err => console.warn('[PWA] Gagal registrasi SW:', err));
+    });
+  }
+
+  // Tombol Install PWA untuk Android & Desktop
+  let deferredPrompt = null;
+  const btnInstall = document.getElementById('btn-install-pwa');
+
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+    if (btnInstall) {
+      btnInstall.style.display = 'flex';
+      btnInstall.addEventListener('click', async () => {
+        if (deferredPrompt) {
+          deferredPrompt.prompt();
+          const { outcome } = await deferredPrompt.userChoice;
+          console.log('[PWA] User response:', outcome);
+          deferredPrompt = null;
+          btnInstall.style.display = 'none';
+        }
+      });
+    }
+  });
+
+  window.addEventListener('appinstalled', () => {
+    console.log('[PWA] Aplikasi Smart Bin berhasil dipasang!');
+    if (btnInstall) btnInstall.style.display = 'none';
+    addActivityLog('Aplikasi Smart Bin berhasil dipasang ke Layar Utama!', 'success');
+  });
+
   console.log('[APP] Dashboard Ready!');
 });
